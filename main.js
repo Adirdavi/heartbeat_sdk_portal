@@ -112,10 +112,11 @@ function initFirebase() {
       console.log(`📡 Received ${snapshot.docs.length} session(s) from Firestore`);
       setConnectionStatus(true);
 
-      // Filter out closed sessions client-side
-      sessions = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((s) => s.current_status !== "closed");
+      const allSessions = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+      // Split into active and closed
+      sessions = allSessions.filter((s) => s.current_status !== "closed");
+      closedSessions = allSessions.filter((s) => s.current_status === "closed");
 
       renderSessions(sessions);
       updateDeviceMarkers(sessions);
@@ -229,6 +230,7 @@ function renderSessionCard(session) {
       <div class="session-card__meta" style="flex-wrap: wrap; gap: 8px; margin-top: 8px;">
         <span>🏊 ${session.activity_type || "Unknown"}</span>
         <span>🔋 ${session.battery_level >= 0 ? Math.round(session.battery_level) + "%" : "N/A"}</span>
+        <span style="color: var(--text-muted); font-size: 0.85rem;">v${session.sdk_version || "1.0.0"}</span>
       </div>
       <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
         <div style="margin-bottom: 2px;">⏱️ <strong>Duration:</strong> ${duration}</div>
@@ -261,7 +263,7 @@ function renderHistoryTable() {
     return `
       <tr>
         <td class="hl-cyan">${s.device_id || "Unknown"}</td>
-        <td>${s.app_id || "Unknown App"}</td>
+        <td>${s.app_id || "Unknown App"}<br/><span style="font-size: 0.7rem; color: #888;">SDK: ${s.sdk_version || "1.0.0"}</span></td>
         <td style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">${s.session_id}</td>
         <td>${startStr}</td>
         <td>${endStr}</td>
