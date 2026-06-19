@@ -15,9 +15,6 @@ import {
   getFirestore,
   collection,
   onSnapshot,
-  query,
-  orderBy,
-  where,
 } from "firebase/firestore";
 
 import { initMap, updateDeviceMarkers, focusOnDevice, resizeMap } from "./map.js";
@@ -65,17 +62,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize the map
   initMap();
 
-  // Try Firebase connection, fall back to demo mode
+  // Connect to Firebase
   try {
-    if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
-      initFirebase();
-    } else {
-      console.log("⚠️ Firebase not configured. Running in DEMO mode.");
-      initDemoMode();
-    }
+    initFirebase();
   } catch (error) {
     console.error("Firebase initialization failed:", error);
-    initDemoMode();
+    setConnectionStatus(false, error.message);
   }
 
   // Handle window resize
@@ -111,51 +103,45 @@ function initFirebase() {
   const db = getFirestore(app);
 
   configureAlerts(firebaseConfig.projectId);
-  setConnectionStatus(true);
+  console.log("🔥 Firebase initialized, setting up listeners...");
 
-  // Listen to deviceSessions collection
-  const sessionsQuery = query(
-    collection(db, "deviceSessions"),
-    where("current_status", "!=", "closed")
-  );
-
+  // Listen to ALL deviceSessions — filter client-side
   onSnapshot(
-    sessionsQuery,
+    collection(db, "deviceSessions"),
     (snapshot) => {
-      sessions = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      console.log(`📡 Received ${snapshot.docs.length} session(s) from Firestore`);
+      setConnectionStatus(true);
+
+      // Filter out closed sessions client-side
+      sessions = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((s) => s.current_status !== "closed");
 
       renderSessions(sessions);
       updateDeviceMarkers(sessions);
       updateStats();
     },
     (error) => {
-      console.error("Sessions listener error:", error);
-      setConnectionStatus(false);
+      console.error("Sessions listener error:", error.code, error.message);
+      setConnectionStatus(false, error.message);
     }
   );
 
-  // Listen to alerts collection
-  const alertsQuery = query(
-    collection(db, "alerts"),
-    orderBy("triggered_at", "desc")
-  );
-
+  // Listen to ALL alerts
   onSnapshot(
-    alertsQuery,
+    collection(db, "alerts"),
     (snapshot) => {
-      alerts = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      console.log(`🚨 Received ${snapshot.docs.length} alert(s) from Firestore`);
+
+      alerts = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => (b.triggered_at || 0) - (a.triggered_at || 0));
 
       updateAlerts(alerts);
       updateStats();
     },
     (error) => {
-      console.error("Alerts listener error:", error);
+      console.error("Alerts listener error:", error.code, error.message);
     }
   );
 }
@@ -320,7 +306,7 @@ function updateClock() {
   }
 }
 
-function setConnectionStatus(isConnected) {
+function setConnectionStatus(isConnected, errorMsg) {
   const indicator = document.getElementById("connection-dot");
   const text = document.getElementById("connection-text");
 
@@ -330,7 +316,7 @@ function setConnectionStatus(isConnected) {
       text.textContent = "Live — Firebase Connected";
     } else {
       indicator.className = "connection-dot offline";
-      text.textContent = "Disconnected / Error";
+      text.textContent = errorMsg ? `Error: ${errorMsg}` : "Disconnected / Error";
     }
   }
 }
