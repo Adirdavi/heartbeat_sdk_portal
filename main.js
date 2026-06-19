@@ -194,6 +194,16 @@ function renderSessionCard(session) {
   const startTime = session.session_start ? new Date(session.session_start).toLocaleTimeString("en-US", {hour: "2-digit", minute: "2-digit"}) : "Unknown";
   const lastHeartbeat = session.last_heartbeat_timestamp ? new Date(session.last_heartbeat_timestamp).toLocaleTimeString("en-US", {hour: "2-digit", minute: "2-digit", second: "2-digit"}) : "Unknown";
 
+  // Heart rate color coding
+  const hr = session.heart_rate ?? -1;
+  const hrColor = hr > 150 ? "#ff4444" : hr > 120 ? "#ffaa00" : hr >= 0 ? "#00ff88" : "var(--text-muted)";
+  const hrText = hr >= 0 ? `${hr} bpm` : "N/A";
+
+  // SpO2 color coding
+  const spo2 = session.spo2 ?? -1;
+  const spo2Color = spo2 < 94 ? "#ff4444" : spo2 < 96 ? "#ffaa00" : spo2 >= 0 ? "#00ff88" : "var(--text-muted)";
+  const spo2Text = spo2 >= 0 ? `${spo2}%` : "N/A";
+
   return `
     <div class="session-card session-card--${status}"
          data-session-device="${session.device_id}">
@@ -205,11 +215,18 @@ function renderSessionCard(session) {
       </div>
       <div class="session-card__user">
         👤 ${session.user_id || "Unknown"}
-        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
-          📱 App: ${session.app_id || "Unknown App"}
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+        <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 8px; text-align: center;">
+          <div style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 2px;">❤️ HEART RATE</div>
+          <div style="font-size: 1.1rem; font-weight: 700; color: ${hrColor};">${hrText}</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 8px; text-align: center;">
+          <div style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 2px;">🫁 SpO2</div>
+          <div style="font-size: 1.1rem; font-weight: 700; color: ${spo2Color};">${spo2Text}</div>
         </div>
       </div>
-      <div class="session-card__meta" style="flex-wrap: wrap; gap: 8px;">
+      <div class="session-card__meta" style="flex-wrap: wrap; gap: 8px; margin-top: 8px;">
         <span>🏊 ${session.activity_type || "Unknown"}</span>
         <span>🔋 ${session.battery_level >= 0 ? Math.round(session.battery_level) + "%" : "N/A"}</span>
       </div>
