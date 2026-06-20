@@ -250,23 +250,24 @@ function renderHistoryTable() {
   if (!tbody) return;
 
   if (closedSessions.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 32px;">No connection history available.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 32px;">No connection history available.</td></tr>`;
     return;
   }
 
   const sorted = [...closedSessions].sort((a, b) => (b.session_start || 0) - (a.session_start || 0));
 
   tbody.innerHTML = sorted.map((s) => {
-    const startStr = s.session_start ? new Date(s.session_start).toLocaleString("en-US", {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"}) : "Unknown";
-    const endStr = s.session_closed_at ? new Date(s.session_closed_at).toLocaleString("en-US", {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"}) : "Unknown";
+    const startStr = s.session_start ? new Date(s.session_start).toLocaleString(undefined, {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit"}) : "Unknown";
+    const endStr = s.session_closed_at ? new Date(s.session_closed_at).toLocaleString(undefined, {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit"}) : "Unknown";
 
     return `
       <tr>
-        <td class="hl-cyan">${s.device_id || "Unknown"}</td>
-        <td>${s.app_id || "Unknown App"}<br/><span style="font-size: 0.7rem; color: #888;">SDK: ${s.sdk_version || "1.0.0"}</span></td>
-        <td style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">${s.session_id}</td>
+        <td class="hl-cyan">${s.user_id || "Unknown"}</td>
+        <td>${s.device_id || "Unknown"}</td>
+        <td>${s.activity_type || "Unknown"}</td>
         <td>${startStr}</td>
         <td>${endStr}</td>
+        <td style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">${s.session_id}</td>
       </tr>
     `;
   }).join("");
